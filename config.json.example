@@ -1,0 +1,24 @@
+{
+  "models": {
+    "deepseek-chat": {
+      "baseUrl": "https://api.deepseek.com",
+      "apiKey": "sk-your-deepseek-api-key",
+      "defaultParams": {
+        "temperature": 0.0,
+        "top_p": 0.9
+      }
+    },
+    "local-vllm": {
+      "baseUrl": "http://192.168.1.100:8000/v1",
+      "apiKey": "not-needed",
+      "fallback": ["deepseek-chat"],
+      "defaultParams": {
+        "temperature": 0.0,
+        "top_p": 0.9,
+        "thinking": {
+          "type": "disabled"
+        }
+      }
+    }
+  }
+}
