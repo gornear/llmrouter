@@ -24,7 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Update="appsettings.json" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Update="config.json" CopyToPublishDirectory="Never" />
     <None Update="config.json.example" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
