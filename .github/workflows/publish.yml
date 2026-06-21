@@ -1,0 +1,92 @@
+name: .NET 10 Native AOT Multi-Platform Publish
+
+on:
+  push:
+    tags:
+      - 'v*' # 当推送 v1.0.0 等 tag 时触发
+
+jobs:
+  release:
+    name: Publish for ${{ matrix.os }} (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            archive_ext: zip
+            executable_name: llmrouter.exe
+          - os: ubuntu-latest
+            rid: linux-x64
+            archive_ext: tar.gz
+            executable_name: llmrouter
+          - os: macos-latest
+            rid: osx-x64
+            archive_ext: tar.gz
+            executable_name: llmrouter
+
+    steps:
+    # 1. 检出代码
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. 安装 .NET 10 SDK
+    - name: Setup .NET 10
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    # 3. 安装 Linux 编译依赖
+    - name: Install Linux Dependencies
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang zlib1g-dev
+
+    # 4. 执行 AOT 编译发布
+    - name: Dotnet Publish (Native AOT)
+      run: |
+        dotnet publish -c Release -r ${{ matrix.rid }} /p:PublishAot=true -o ./publish-stage
+
+    # 5. 打包发布产物（程序 + 配置文件已由 dotnet publish 自动输出到 publish-stage）
+    - name: Package Application and Configurations
+      shell: bash
+      run: |
+        cd publish-stage
+        if [ "${{ matrix.archive_ext }}" = "zip" ]; then
+          7z a ../llmrouter-${{ matrix.rid }}.zip *
+        else
+          tar -czvf ../llmrouter-${{ matrix.rid }}.tar.gz *
+        fi
+
+    # 6. 将打包好的压缩包作为 Artifacts 临时上传
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.rid }}-archive
+        path: llmrouter-${{ matrix.rid }}.${{ matrix.archive_ext }}
+
+  # 建立后续 Job，把所有平台的压缩包搜集起来发布到 Release 页面
+  create-release:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+
+    # 将文件平铺到一个目录中方便发布
+    - name: Flatten directory structure
+      run: |
+        mkdir ./release-files
+        find ./artifacts -type f -exec cp {} ./release-files/ \;
+        ls -R ./release-files
+
+    # 发布到 GitHub Release
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ./release-files/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
