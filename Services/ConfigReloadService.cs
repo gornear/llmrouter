@@ -30,10 +30,11 @@ public class ConfigReloadService : IDisposable
         }
     }
 
-    public ConfigReloadService(ILogger<ConfigReloadService> logger, string configPath = "config.json")
+    public ConfigReloadService(ILogger<ConfigReloadService> logger)
     {
         _logger = logger;
-        _configPath = Path.GetFullPath(configPath);
+        
+        _configPath = Path.Combine(AppContext.BaseDirectory, "config.json");
         LoadConfig();
         StartWatching();
     }

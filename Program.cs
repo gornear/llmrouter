@@ -12,7 +12,8 @@ public class Program
     public static async Task Main(string[] args)
     {
         // Load appsettings.json with AOT-compatible serializer
-        var appSettings = LoadAppSettings("appsettings.json");
+
+        var appSettings = LoadAppSettings(Path.Combine(AppContext.BaseDirectory, "appsettings.json"));
 
         var builder = WebApplication.CreateSlimBuilder(args);
 
