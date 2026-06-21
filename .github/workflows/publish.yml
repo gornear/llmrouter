@@ -55,7 +55,6 @@ jobs:
     - name: Package Application and Configurations
       shell: bash
       run: |
-        cp appsettings.json publish-stage/
         cd publish-stage
         if [ "${{ matrix.archive_ext }}" = "zip" ]; then
           7z a ../llmrouter-${{ matrix.rid }}.zip *

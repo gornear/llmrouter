@@ -12,7 +12,6 @@
 *.env
 
 .kilo/
-appsettings.json
 config.json
 logs/
 # User-specific files (MonoDevelop/Xamarin Studio)
