@@ -1,23 +1,59 @@
 {
   "models": {
-    "deepseek-chat": {
-      "baseUrl": "https://api.deepseek.com",
-      "apiKey": "sk-your-deepseek-api-key",
-      "defaultParams": {
-        "temperature": 0.0,
-        "top_p": 0.9
-      }
-    },
-    "local-vllm": {
+    "gemma4-it-31b": {
       "baseUrl": "http://192.168.1.100:8000/v1",
-      "apiKey": "not-needed",
-      "fallback": ["deepseek-chat"],
+      "apiKey": "your-api-key-or-not-needed",
+      "fallback": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro-thinking"
+      ],
       "defaultParams": {
         "temperature": 0.0,
         "top_p": 0.9,
+        "top_k": 40
+      }
+    },
+    "deepseek-v4-pro": {
+      "baseUrl": "https://api.deepseek.com",
+      "apiKey": "sk-your-deepseek-key",
+      "defaultParams": {
+        "temperature": 0.0,
+        "top_p": 0.9,
+        "top_k": 40,
         "thinking": {
           "type": "disabled"
         }
+
+      }
+    },
+    "deepseek-v4-flash": {
+      "baseUrl": "https://api.deepseek.com",
+      "apiKey": "sk-your-deepseek-key",
+      "defaultParams": {
+        "temperature": 0.0,
+        "top_p": 0.9,
+        "top_k": 40,
+        "thinking": {
+          "type": "disabled"
+        }
+      }
+    },
+    "deepseek-v4-pro-thinking": {
+      "baseUrl": "https://api.deepseek.com",
+      "apiKey": "sk-your-deepseek-key",
+      "defaultParams": {
+        "temperature": 0.0,
+        "top_p": 0.9,
+        "top_k": 40
+      }
+    },
+    "deepseek-v4-flash-thinking": {
+      "baseUrl": "https://api.deepseek.com",
+      "apiKey": "sk-your-deepseek-key",
+      "defaultParams": {
+        "temperature": 0.0,
+        "top_p": 0.9,
+        "top_k": 40
       }
     }
   }
