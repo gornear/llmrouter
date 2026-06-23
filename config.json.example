@@ -1,5 +1,5 @@
 {
-  "local": [
+  "localvllm": [
     {
       "baseUrl": "http://192.168.1.100:8000/v1",
       "apiKey": "your-local-api-key",
@@ -8,7 +8,7 @@
           "modelid": "gemma4-it-31b",
           "fallback": [
             "deepseek/deepseek-v4-flash",
-            "deepseek/deepseek-v4-pro-thinking"
+            "deepseek/deepseek-v4-pro"
           ],
           "defaultParams": {
             "temperature": 0.0,
@@ -17,14 +17,17 @@
           }
         },
         {
-          "_comment": "Same upstream model with alias + different defaultParams for thinking mode",
           "modelid": "gemma4-it-31b",
           "alias": "gemma4-it-31b-thinking",
+          "fallback": [
+            "deepseek/deepseek-v4-flash-thinking",
+            "deepseek/deepseek-v4-pro-thinking"
+          ],
           "defaultParams": {
             "temperature": 0.0,
             "top_p": 0.9,
             "top_k": 40,
-            "enable_thinking": true
+            "chat_template_kwargs": {"enable_thinking": true}
           }
         }
       ]
@@ -33,7 +36,7 @@
   "deepseek": [
     {
       "baseUrl": "https://api.deepseek.com",
-      "apiKey": "sk-your-deepseek-key",
+      "apiKey": "your-model-api-key",
       "models": [
         {
           "modelid": "deepseek-v4-pro",
@@ -58,7 +61,8 @@
           }
         },
         {
-          "modelid": "deepseek-v4-pro-thinking",
+          "modelid": "deepseek-v4-pro",
+          "alias": "deepseek-v4-pro-thinking",
           "defaultParams": {
             "temperature": 0.0,
             "top_p": 0.9,
@@ -66,7 +70,8 @@
           }
         },
         {
-          "modelid": "deepseek-v4-flash-thinking",
+          "modelid": "deepseek-v4-flash",
+          "alias": "deepseek-v4-flash-thinking",
           "defaultParams": {
             "temperature": 0.0,
             "top_p": 0.9,

@@ -41,17 +41,35 @@ cp config.json.example config.json
 
 ```json
 {
-  "local": [
+  "localvllm": [
     {
       "baseUrl": "http://192.168.1.100:8000/v1",
-      "apiKey": "your-api-key-or-not-needed",
+      "apiKey": "your-local-api-key",
       "models": [
         {
-          "modelid": "gemma4",
-          "fallback": ["deepseek/deepseek-v4-flash"],
+          "modelid": "gemma4-it-31b",
+          "fallback": [
+            "deepseek/deepseek-v4-flash",
+            "deepseek/deepseek-v4-pro"
+          ],
           "defaultParams": {
             "temperature": 0.0,
-            "top_p": 0.9
+            "top_p": 0.9,
+            "top_k": 40
+          }
+        },
+        {
+          "modelid": "gemma4-it-31b",
+          "alias": "gemma4-it-31b-thinking",
+          "fallback": [
+            "deepseek/deepseek-v4-flash-thinking",
+            "deepseek/deepseek-v4-pro-thinking"
+          ],
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9,
+            "top_k": 40,
+            "chat_template_kwargs": {"enable_thinking": true}
           }
         }
       ]
@@ -60,16 +78,46 @@ cp config.json.example config.json
   "deepseek": [
     {
       "baseUrl": "https://api.deepseek.com",
-      "apiKey": "sk-your-deepseek-key",
+      "apiKey": "your-model-api-key",
       "models": [
+        {
+          "modelid": "deepseek-v4-pro",
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9,
+            "top_k": 40,
+            "thinking": {
+              "type": "disabled"
+            }
+          }
+        },
         {
           "modelid": "deepseek-v4-flash",
           "defaultParams": {
             "temperature": 0.0,
             "top_p": 0.9,
+            "top_k": 40,
             "thinking": {
               "type": "disabled"
             }
+          }
+        },
+        {
+          "modelid": "deepseek-v4-pro",
+          "alias": "deepseek-v4-pro-thinking",
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9,
+            "top_k": 40
+          }
+        },
+        {
+          "modelid": "deepseek-v4-flash",
+          "alias": "deepseek-v4-flash-thinking",
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9,
+            "top_k": 40
           }
         }
       ]
@@ -82,24 +130,40 @@ cp config.json.example config.json
 
 ```json
 {
-  "Kestrel": {
-    "Endpoints": {
-      "Http": { "Url": "http://0.0.0.0:5000" }
+    "Kestrel": {
+        "Endpoints": {
+            "Http": {
+                "Url": "http://0.0.0.0:5000"
+            }
+        },
+        "Limits": {
+            "MaxConcurrentConnections": 200,
+            "MaxConcurrentUpgradedConnections": 200,
+            "KeepAliveTimeout": "00:02:00"
+        }
     },
-    "Limits": {
-      "MaxConcurrentConnections": 200
+    "ApiKey": "",
+    "RequestTimeoutSeconds": 300,
+    "MaxRetryAttempts": 3,
+    "DebugPrompt": false,
+    "HealthCheck": {
+        "Enabled": true,
+        "IntervalSeconds": 30,
+        "TimeoutSeconds": 5,
+        "UnhealthyCooldownSeconds": 30
+    },
+    "Logging": {
+        "LogLevel": {
+            "Default": "Information",
+            "System.Net.Http.HttpClient": "Warning"
+        }
     }
-  },
-  "ApiKey": "sk-your-unified-api-key",
-  "RequestTimeoutSeconds": 300,
-  "MaxRetryAttempts": 3,
-  "DebugPrompt": false
 }
 ```
 
 > **提示**：`baseUrl` 可以写 `http://host:port` 也可以写 `http://host:port/v1`。
 >
-> **模型别名（alias）**：使用 `alias` 可以让同一个上游模型以不同名称对外暴露，并搭配不同的 `defaultParams`。例如同一个 vLLM 模型可同时以 `local/gemma4-it-31b` 和 `local/gemma4-it-31b-thinking` 列出——上游在两种情况下收到的 `"model"` 都是 `"gemma4-it-31b"`，但 thinking 版本会注入 `"enable_thinking": true`。
+> **模型别名（alias）**：使用 `alias` 可以让同一个上游模型以不同名称对外暴露，并搭配不同的 `defaultParams`。例如同一个 vLLM 模型可同时以 `local/gemma4-it-31b` 和 `local/gemma4-it-31b-thinking` 列出——上游在两种情况下收到的 `"model"` 都是 `"gemma4-it-31b"`，但 thinking 版本会注入 `"chat_template_kwargs": {"enable_thinking": true}`。
 
 ### 3. 编译
 
@@ -114,7 +178,8 @@ dotnet publish -c Release -o publish
 ### 4. 运行
 
 ```bash
-./publish/llmrouter
+cd publish
+./llmrouter
 ```
 
 输出：

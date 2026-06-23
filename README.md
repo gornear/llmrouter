@@ -43,17 +43,35 @@ Edit `config.json` to add your upstream models:
 
 ```json
 {
-  "local": [
+  "localvllm": [
     {
       "baseUrl": "http://192.168.1.100:8000/v1",
-      "apiKey": "your-api-key-or-not-needed",
+      "apiKey": "your-local-api-key",
       "models": [
         {
-          "modelid": "gemma4",
-          "fallback": ["deepseek/deepseek-v4-flash"],
+          "modelid": "gemma4-it-31b",
+          "fallback": [
+            "deepseek/deepseek-v4-flash",
+            "deepseek/deepseek-v4-pro"
+          ],
           "defaultParams": {
             "temperature": 0.0,
-            "top_p": 0.9
+            "top_p": 0.9,
+            "top_k": 40
+          }
+        },
+        {
+          "modelid": "gemma4-it-31b",
+          "alias": "gemma4-it-31b-thinking",
+          "fallback": [
+            "deepseek/deepseek-v4-flash-thinking",
+            "deepseek/deepseek-v4-pro-thinking"
+          ],
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9,
+            "top_k": 40,
+            "chat_template_kwargs": {"enable_thinking": true}
           }
         }
       ]
@@ -62,16 +80,46 @@ Edit `config.json` to add your upstream models:
   "deepseek": [
     {
       "baseUrl": "https://api.deepseek.com",
-      "apiKey": "sk-your-deepseek-key",
+      "apiKey": "your-model-api-key",
       "models": [
+        {
+          "modelid": "deepseek-v4-pro",
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9,
+            "top_k": 40,
+            "thinking": {
+              "type": "disabled"
+            }
+          }
+        },
         {
           "modelid": "deepseek-v4-flash",
           "defaultParams": {
             "temperature": 0.0,
             "top_p": 0.9,
+            "top_k": 40,
             "thinking": {
               "type": "disabled"
             }
+          }
+        },
+        {
+          "modelid": "deepseek-v4-pro",
+          "alias": "deepseek-v4-pro-thinking",
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9,
+            "top_k": 40
+          }
+        },
+        {
+          "modelid": "deepseek-v4-flash",
+          "alias": "deepseek-v4-flash-thinking",
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9,
+            "top_k": 40
           }
         }
       ]
@@ -84,24 +132,40 @@ Edit `appsettings.json` to set the listen address and unified API key:
 
 ```json
 {
-  "Kestrel": {
-    "Endpoints": {
-      "Http": { "Url": "http://0.0.0.0:5000" }
+    "Kestrel": {
+        "Endpoints": {
+            "Http": {
+                "Url": "http://0.0.0.0:5000"
+            }
+        },
+        "Limits": {
+            "MaxConcurrentConnections": 200,
+            "MaxConcurrentUpgradedConnections": 200,
+            "KeepAliveTimeout": "00:02:00"
+        }
     },
-    "Limits": {
-      "MaxConcurrentConnections": 200
+    "ApiKey": "",
+    "RequestTimeoutSeconds": 300,
+    "MaxRetryAttempts": 3,
+    "DebugPrompt": false,
+    "HealthCheck": {
+        "Enabled": true,
+        "IntervalSeconds": 30,
+        "TimeoutSeconds": 5,
+        "UnhealthyCooldownSeconds": 30
+    },
+    "Logging": {
+        "LogLevel": {
+            "Default": "Information",
+            "System.Net.Http.HttpClient": "Warning"
+        }
     }
-  },
-  "ApiKey": "sk-your-unified-api-key",
-  "RequestTimeoutSeconds": 300,
-  "MaxRetryAttempts": 3,
-  "DebugPrompt": false
 }
 ```
 
 > **Note**: `baseUrl` may include a path prefix (e.g. `http://host:8000/v1`) or not. The program automatically deduplicates overlapping path prefixes — no `/v1/v1` double-writes.
 >
-> **Model Alias**: Use `alias` to expose the same upstream model under a different public name with different `defaultParams`. For example, the same vLLM model can be listed as both `local/gemma4-it-31b` and `local/gemma4-it-31b-thinking` — the upstream receives `"model":"gemma4-it-31b"` in both cases, but the thinking variant injects `"enable_thinking":true`.
+> **Model Alias**: Use `alias` to expose the same upstream model under a different public name with different `defaultParams`. For example, the same vLLM model can be listed as both `local/gemma4-it-31b` and `local/gemma4-it-31b-thinking` — the upstream receives `"model":"gemma4-it-31b"` in both cases, but the thinking variant injects `"chat_template_kwargs": {"enable_thinking": true}`.
 
 ### 3. Build
 
@@ -116,7 +180,8 @@ For development, use `dotnet run`.
 ### 4. Run
 
 ```bash
-./publish/llmrouter
+cd publish
+./llmrouter
 ```
 
 Output:
