@@ -8,19 +8,26 @@ public class ApiKeyMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ApiKeyMiddleware> _logger;
-    private readonly string _apiKey;
+    private readonly string? _apiKey;
 
     public ApiKeyMiddleware(RequestDelegate next, ILogger<ApiKeyMiddleware> logger, AppSettings appSettings)
     {
         _next = next;
         _logger = logger;
-        _apiKey = appSettings.ApiKey ?? "sk-llmrouter-local-key-change-me";
+        _apiKey = appSettings.ApiKey;
     }
 
     public async Task InvokeAsync(HttpContext context)
     {
         // Skip auth for /health
         if (context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase))
+        {
+            await _next(context);
+            return;
+        }
+
+        // If no API key configured, allow all requests (passthrough mode)
+        if (string.IsNullOrEmpty(_apiKey))
         {
             await _next(context);
             return;
