@@ -17,6 +17,7 @@
           }
         },
         {
+          "_comment": "Same upstream model with alias + different defaultParams for thinking mode",
           "modelid": "gemma4-it-31b",
           "alias": "gemma4-it-31b-thinking",
           "defaultParams": {

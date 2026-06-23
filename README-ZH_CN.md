@@ -98,6 +98,8 @@ cp config.json.example config.json
 ```
 
 > **提示**：`baseUrl` 可以写 `http://host:port` 也可以写 `http://host:port/v1`。
+>
+> **模型别名（alias）**：使用 `alias` 可以让同一个上游模型以不同名称对外暴露，并搭配不同的 `defaultParams`。例如同一个 vLLM 模型可同时以 `local/gemma4-it-31b` 和 `local/gemma4-it-31b-thinking` 列出——上游在两种情况下收到的 `"model"` 都是 `"gemma4-it-31b"`，但 thinking 版本会注入 `"enable_thinking": true`。
 
 ### 3. 编译
 
@@ -214,7 +216,8 @@ Authorization: Bearer sk-your-unified-api-key
 | `<provider>[].baseUrl` | string | 是 | 上游 API 地址（如 `https://api.deepseek.com`，含/不含 `/v1` 均可） |
 | `<provider>[].apiKey` | string | 是 | 上游 API Key（端点组内所有模型共享） |
 | `<provider>[].models` | array | 是 | 该端点组下的模型列表 |
-| `models[].modelid` | string | 是 | 模型标识符（客户端和 fallback 中用 `provider/modelid` 引用） |
+| `models[].modelid` | string | 是 | 上游模型名，实际发送给 Provider API 的名称 |
+| `models[].alias` | string | 否 | 对外暴露的别名（在 `/v1/models` 中显示为 `provider/alias`）。设置后客户端使用别名访问，但上游收到的仍然是 `modelid`。适用于为同一模型暴露思考/非思考等不同参数变体。 |
 | `models[].defaultParams` | object | 否 | 默认参数（支持 number/string/bool/object），客户端未传时注入 |
 | `models[].fallback` | string[] | 否 | 备用模型列表，使用 `provider/modelid` 格式引用 |
 
@@ -264,6 +267,28 @@ Authorization: Bearer sk-your-unified-api-key
   }
 ]
 ```
+
+**模型别名（思考/非思考变体）**：
+```json
+"local": [
+  {
+    "baseUrl": "http://192.168.1.100:8000/v1",
+    "apiKey": "not-needed",
+    "models": [
+      {
+        "modelid": "qwen3-235b",
+        "defaultParams": { "temperature": 0.0 }
+      },
+      {
+        "modelid": "qwen3-235b",
+        "alias": "qwen3-235b-thinking",
+        "defaultParams": { "temperature": 0.0, "enable_thinking": true }
+      }
+    ]
+  }
+]
+```
+> **alias 原理**：别名成为对外暴露的名称（`local/qwen3-235b-thinking`），但上游 API 实际收到 `"model":"qwen3-235b"`。区别在于请求体中会注入 `enable_thinking: true`。
 
 ## 部署
 

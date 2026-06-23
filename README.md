@@ -100,6 +100,8 @@ Edit `appsettings.json` to set the listen address and unified API key:
 ```
 
 > **Note**: `baseUrl` may include a path prefix (e.g. `http://host:8000/v1`) or not. The program automatically deduplicates overlapping path prefixes — no `/v1/v1` double-writes.
+>
+> **Model Alias**: Use `alias` to expose the same upstream model under a different public name with different `defaultParams`. For example, the same vLLM model can be listed as both `local/gemma4-it-31b` and `local/gemma4-it-31b-thinking` — the upstream receives `"model":"gemma4-it-31b"` in both cases, but the thinking variant injects `"enable_thinking":true`.
 
 ### 3. Build
 
@@ -215,7 +217,8 @@ Authorization: Bearer sk-your-unified-api-key
 | `<provider>[].baseUrl` | string | Yes | Upstream API URL (e.g. `https://api.deepseek.com`, with or without `/v1` suffix) |
 | `<provider>[].apiKey` | string | Yes | Upstream API key (shared by all models under this endpoint group) |
 | `<provider>[].models` | array | Yes | Model entries under this endpoint group |
-| `models[].modelid` | string | Yes | Model identifier (referenced as `provider/modelid` in clients and fallback) |
+| `models[].modelid` | string | Yes | Upstream model name sent to the provider's API |
+| `models[].alias` | string | No | Public-facing name override (exposed as `provider/alias` in `/v1/models`). When set, clients use the alias, but the upstream receives `modelid`. Useful for exposing thinking/non-thinking variants of the same model. |
 | `models[].defaultParams` | object | No | Default body parameters (number/string/bool/object). Injected when absent from client request |
 | `models[].fallback` | string[] | No | Ordered list of fallback models in `provider/modelid` format |
 
@@ -265,6 +268,28 @@ Authorization: Bearer sk-your-unified-api-key
   }
 ]
 ```
+
+**Model Alias (thinking/non-thinking variants)**:
+```json
+"local": [
+  {
+    "baseUrl": "http://192.168.1.100:8000/v1",
+    "apiKey": "not-needed",
+    "models": [
+      {
+        "modelid": "qwen3-235b",
+        "defaultParams": { "temperature": 0.0 }
+      },
+      {
+        "modelid": "qwen3-235b",
+        "alias": "qwen3-235b-thinking",
+        "defaultParams": { "temperature": 0.0, "enable_thinking": true }
+      }
+    ]
+  }
+]
+```
+> **How alias works**: The alias becomes the public name (`local/qwen3-235b-thinking`), but the upstream API still receives `"model":"qwen3-235b"`. The difference is `enable_thinking: true` is injected into the request body.
 
 ## Deployment
 
