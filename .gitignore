@@ -211,7 +211,7 @@ DocProject/Help/html
 
 # Click-Once directory
 publish/
-publish
+publish.sh
 publish.cmd
 
 # Publish Web Output
