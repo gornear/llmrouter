@@ -41,28 +41,40 @@ cp config.json.example config.json
 
 ```json
 {
-  "models": {
-    "deepseek-v4-flash": {
+  "local": [
+    {
+      "baseUrl": "http://192.168.1.100:8000/v1",
+      "apiKey": "your-api-key-or-not-needed",
+      "models": [
+        {
+          "modelid": "gemma4",
+          "fallback": ["deepseek/deepseek-v4-flash"],
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9
+          }
+        }
+      ]
+    }
+  ],
+  "deepseek": [
+    {
       "baseUrl": "https://api.deepseek.com",
       "apiKey": "sk-your-deepseek-key",
-      "defaultParams": {
-        "temperature": 0.0,
-        "top_p": 0.9,
-        "thinking": {
-          "type": "disabled"
+      "models": [
+        {
+          "modelid": "deepseek-v4-flash",
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9,
+            "thinking": {
+              "type": "disabled"
+            }
+          }
         }
-      }
-    },
-    "gemma4": {
-      "baseUrl": "http://192.168.1.100:8000/v1",
-      "apiKey": "your-api-key or not-needed",
-      "fallback": ["deepseek-v4-flash"],
-      "defaultParams": {
-        "temperature": 0.0,
-        "top_p": 0.9
-      }
+      ]
     }
-  }
+  ]
 }
 ```
 
@@ -122,13 +134,13 @@ curl -H "Authorization: Bearer sk-your-unified-api-key" http://localhost:5000/v1
 # Chat Completions
 curl -H "Authorization: Bearer sk-your-unified-api-key" \
      -H "Content-Type: application/json" \
-     -d '{"model":"local-vllm","messages":[{"role":"user","content":"Hello!"}]}' \
+     -d '{"model":"local/gemma4","messages":[{"role":"user","content":"Hello!"}]}' \
      http://localhost:5000/v1/chat/completions
 
 # 流式
 curl -N -H "Authorization: Bearer sk-your-unified-api-key" \
      -H "Content-Type: application/json" \
-     -d '{"model":"deepseek","messages":[{"role":"user","content":"Hello!"}],"stream":true}' \
+     -d '{"model":"deepseek/deepseek-v4-flash","messages":[{"role":"user","content":"Hello!"}],"stream":true}' \
      http://localhost:5000/v1/chat/completions
 ```
 
@@ -136,13 +148,13 @@ curl -N -H "Authorization: Bearer sk-your-unified-api-key" \
 
 ```
 客户端  ──POST /v1/chat/completions──→  LLM Router  ──POST /v1/chat/completions──→  上游 A
-  "model":"local-vllm"                  │  替换 "model":"local-vllm"                    (vllm)
-                                        │  → body 注入 "model":"deepseek"
+  "model":"local/gemma4"                │  替换 "model":"gemma4"                        (vllm)
+                                        │  注入默认参数
                                         │
                                     上游 A 不可达？
                                         │
                                         └──POST /v1/chat/completions──→  上游 B
-                                            "model":"deepseek"              (deepseek)
+                                            "model":"deepseek-v4-flash"    (deepseek)
 ```
 
 
@@ -198,38 +210,59 @@ Authorization: Bearer sk-your-unified-api-key
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `models.<key>` | string | 是 | 模型名（同时也是上游实际模型名） |
-| `models.<key>.baseUrl` | string | 是 | 上游 API 地址（如 `https://api.deepseek.com`，含/不含 `/v1` 均可） |
-| `models.<key>.apiKey` | string | 是 | 上游 API Key |
-| `models.<key>.defaultParams` | object | 否 | 默认参数（支持 number/string/bool/object），客户端未传时注入 |
-| `models.<key>.fallback` | string[] | 否 | 备用模型 key 列表，按顺序尝试 |
+| `<provider>` | string | 是 | Provider 命名空间（如 `local`、`deepseek`、`openai`） |
+| `<provider>[].baseUrl` | string | 是 | 上游 API 地址（如 `https://api.deepseek.com`，含/不含 `/v1` 均可） |
+| `<provider>[].apiKey` | string | 是 | 上游 API Key（端点组内所有模型共享） |
+| `<provider>[].models` | array | 是 | 该端点组下的模型列表 |
+| `models[].modelid` | string | 是 | 模型标识符（客户端和 fallback 中用 `provider/modelid` 引用） |
+| `models[].defaultParams` | object | 否 | 默认参数（支持 number/string/bool/object），客户端未传时注入 |
+| `models[].fallback` | string[] | 否 | 备用模型列表，使用 `provider/modelid` 格式引用 |
 
 ### 常见配置示例
 
 **DeepSeek**：
 ```json
-"deepseek-chat": {
-  "baseUrl": "https://api.deepseek.com",
-  "apiKey": "sk-xxx"
-}
+"deepseek": [
+  {
+    "baseUrl": "https://api.deepseek.com",
+    "apiKey": "sk-xxx",
+    "models": [
+      { "modelid": "deepseek-chat" }
+    ]
+  }
+]
 ```
 
 **OpenAI**：
 ```json
-"gpt-4o": {
-  "baseUrl": "https://api.openai.com",
-  "apiKey": "sk-xxx",
-  "defaultParams": { "temperature": 0.7 }
-}
+"openai": [
+  {
+    "baseUrl": "https://api.openai.com",
+    "apiKey": "sk-xxx",
+    "models": [
+      {
+        "modelid": "gpt-4o",
+        "defaultParams": { "temperature": 0.7 }
+      }
+    ]
+  }
+]
 ```
 
 **本地 vLLM**：
 ```json
-"qwen3": {
-  "baseUrl": "http://192.168.1.100:8000/v1",
-  "apiKey": "not-needed",
-  "fallback": ["deepseek-chat"]
-}
+"local": [
+  {
+    "baseUrl": "http://192.168.1.100:8000/v1",
+    "apiKey": "not-needed",
+    "models": [
+      {
+        "modelid": "qwen3",
+        "fallback": ["deepseek/deepseek-chat"]
+      }
+    ]
+  }
+]
 ```
 
 ## 部署

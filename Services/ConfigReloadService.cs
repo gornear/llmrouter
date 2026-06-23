@@ -54,16 +54,17 @@ public class ConfigReloadService : IDisposable
             }
 
             var json = File.ReadAllText(_configPath);
-            var config = JsonSerializer.Deserialize(json, ConfigModelsJsonContext.Default.RouterConfig);
+            var providers = JsonSerializer.Deserialize(json, ConfigModelsJsonContext.Default.DictionaryStringListEndpointGroup);
 
-            if (config?.Models != null)
+            if (providers != null && providers.Count > 0)
             {
+                var config = RouterConfig.Flatten(providers);
                 lock (_lock)
                 {
                     _config = config;
                 }
                 _logger.LogInformation("Config loaded successfully with {Count} models from {Path}",
-                    config.Models.Count, _configPath);
+                    config.Models?.Count ?? 0, _configPath);
             }
             else
             {

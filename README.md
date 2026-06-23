@@ -43,28 +43,40 @@ Edit `config.json` to add your upstream models:
 
 ```json
 {
-  "models": {
-    "deepseek-v4-flash": {
-      "baseUrl": "https://api.deepseek.com",
-      "apiKey": "sk-your-deepseek-key",
-      "defaultParams": {
-        "temperature": 0.0,
-        "top_p": 0.9,
-        "thinking": {
-          "type": "disabled"
-        }
-      }
-    },
-    "gemma4": {
+  "local": [
+    {
       "baseUrl": "http://192.168.1.100:8000/v1",
       "apiKey": "your-api-key-or-not-needed",
-      "fallback": ["deepseek-v4-flash"],
-      "defaultParams": {
-        "temperature": 0.0,
-        "top_p": 0.9
-      }
+      "models": [
+        {
+          "modelid": "gemma4",
+          "fallback": ["deepseek/deepseek-v4-flash"],
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9
+          }
+        }
+      ]
     }
-  }
+  ],
+  "deepseek": [
+    {
+      "baseUrl": "https://api.deepseek.com",
+      "apiKey": "sk-your-deepseek-key",
+      "models": [
+        {
+          "modelid": "deepseek-v4-flash",
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9,
+            "thinking": {
+              "type": "disabled"
+            }
+          }
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -123,13 +135,13 @@ curl -H "Authorization: Bearer sk-your-unified-api-key" http://localhost:5000/v1
 # Chat Completions
 curl -H "Authorization: Bearer sk-your-unified-api-key" \
      -H "Content-Type: application/json" \
-     -d '{"model":"gemma4","messages":[{"role":"user","content":"Hello!"}]}' \
+     -d '{"model":"local/gemma4","messages":[{"role":"user","content":"Hello!"}]}' \
      http://localhost:5000/v1/chat/completions
 
 # Streaming
 curl -N -H "Authorization: Bearer sk-your-unified-api-key" \
      -H "Content-Type: application/json" \
-     -d '{"model":"deepseek-v4-flash","messages":[{"role":"user","content":"Hello!"}],"stream":true}' \
+     -d '{"model":"deepseek/deepseek-v4-flash","messages":[{"role":"user","content":"Hello!"}],"stream":true}' \
      http://localhost:5000/v1/chat/completions
 ```
 
@@ -137,7 +149,7 @@ curl -N -H "Authorization: Bearer sk-your-unified-api-key" \
 
 ```
 Client  ──POST /v1/chat/completions──→  LLM Router  ──POST /v1/chat/completions──→  Upstream A
-  "model":"gemma4"                       │  rewrites "model":"gemma4"                    (vllm)
+  "model":"local/gemma4"                 │  rewrites "model":"gemma4"                    (vllm)
                                          │  injects default params
                                          │
                                       Upstream A unreachable?
@@ -199,38 +211,59 @@ Authorization: Bearer sk-your-unified-api-key
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `models.<key>` | string | Yes | Model name (also acts as the upstream model name) |
-| `models.<key>.baseUrl` | string | Yes | Upstream API URL (e.g. `https://api.deepseek.com`, with or without `/v1` suffix) |
-| `models.<key>.apiKey` | string | Yes | Upstream API key |
-| `models.<key>.defaultParams` | object | No | Default body parameters (number/string/bool/object). Injected when absent from client request |
-| `models.<key>.fallback` | string[] | No | Ordered list of fallback model keys |
+| `<provider>` | string | Yes | Provider namespace (e.g. `local`, `deepseek`, `openai`) |
+| `<provider>[].baseUrl` | string | Yes | Upstream API URL (e.g. `https://api.deepseek.com`, with or without `/v1` suffix) |
+| `<provider>[].apiKey` | string | Yes | Upstream API key (shared by all models under this endpoint group) |
+| `<provider>[].models` | array | Yes | Model entries under this endpoint group |
+| `models[].modelid` | string | Yes | Model identifier (referenced as `provider/modelid` in clients and fallback) |
+| `models[].defaultParams` | object | No | Default body parameters (number/string/bool/object). Injected when absent from client request |
+| `models[].fallback` | string[] | No | Ordered list of fallback models in `provider/modelid` format |
 
 ### Example Configurations
 
 **DeepSeek**:
 ```json
-"deepseek-chat": {
-  "baseUrl": "https://api.deepseek.com",
-  "apiKey": "sk-xxx"
-}
+"deepseek": [
+  {
+    "baseUrl": "https://api.deepseek.com",
+    "apiKey": "sk-xxx",
+    "models": [
+      { "modelid": "deepseek-chat" }
+    ]
+  }
+]
 ```
 
 **OpenAI**:
 ```json
-"gpt-4o": {
-  "baseUrl": "https://api.openai.com",
-  "apiKey": "sk-xxx",
-  "defaultParams": { "temperature": 0.7 }
-}
+"openai": [
+  {
+    "baseUrl": "https://api.openai.com",
+    "apiKey": "sk-xxx",
+    "models": [
+      {
+        "modelid": "gpt-4o",
+        "defaultParams": { "temperature": 0.7 }
+      }
+    ]
+  }
+]
 ```
 
 **Local vLLM**:
 ```json
-"qwen3": {
-  "baseUrl": "http://192.168.1.100:8000/v1",
-  "apiKey": "not-needed",
-  "fallback": ["deepseek-chat"]
-}
+"local": [
+  {
+    "baseUrl": "http://192.168.1.100:8000/v1",
+    "apiKey": "not-needed",
+    "models": [
+      {
+        "modelid": "qwen3",
+        "fallback": ["deepseek/deepseek-chat"]
+      }
+    ]
+  }
+]
 ```
 
 ## Deployment
