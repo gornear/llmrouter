@@ -84,13 +84,13 @@ public static class ProxyEndpoint
             var route = routes[i];
             logger.LogInformation(
                 "Routing request: model={ClientModel} -> target={TargetModel} @ {BaseUrl}{Path}",
-                model, route.ModelName, route.BaseUrl, path);
+                model, route.UpstreamModelName, route.BaseUrl, path);
 
             var upstreamResponse = await proxy.ForwardAsync(
                 route.BaseUrl,
                 route.ApiKey,
                 path,
-                route.ModelName,
+                route.UpstreamModelName,
                 context.Request,
                 route.DefaultParams,
                 ct);

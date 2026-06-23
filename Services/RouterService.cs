@@ -73,6 +73,8 @@ public class RouterService
                 results.Add(new RouteTarget
                 {
                     ModelName = modelName,
+                    // Use UpstreamModelName if set (for alias), otherwise fall back to parsed model name
+                    UpstreamModelName = entry.UpstreamModelName ?? modelName,
                     BaseUrl = entry.BaseUrl,
                     ApiKey = entry.ApiKey,
                     DefaultParams = entry.DefaultParams
@@ -101,7 +103,13 @@ public class RouterService
     /// </summary>
     public record RouteTarget
     {
+        /// <summary>Public-facing model name (as resolved from client request).</summary>
         public string ModelName { get; init; } = string.Empty;
+        /// <summary>
+        /// Actual model name to send to the upstream API.
+        /// Differs from ModelName when an alias is used.
+        /// </summary>
+        public string UpstreamModelName { get; init; } = string.Empty;
         public string BaseUrl { get; init; } = string.Empty;
         public string ApiKey { get; init; } = string.Empty;
         public Dictionary<string, JsonElement>? DefaultParams { get; init; }

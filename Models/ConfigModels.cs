@@ -56,11 +56,15 @@ public class RouterConfig
 
                 foreach (var pm in group.Models)
                 {
-                    var key = $"{provider}/{pm.ModelId}";
+                    // Public-facing key: alias takes priority over modelid
+                    var publicName = pm.Alias ?? pm.ModelId;
+                    var key = $"{provider}/{publicName}";
                     config.Models[key] = new ModelEntry
                     {
                         BaseUrl = group.BaseUrl,
                         ApiKey = group.ApiKey,
+                        // Upstream model name: always use the real modelid, never the alias
+                        UpstreamModelName = pm.ModelId,
                         DefaultParams = pm.DefaultParams,
                         Fallback = pm.Fallback
                     };
@@ -90,6 +94,13 @@ public class EndpointGroup
 public class ProviderModel
 {
     public string ModelId { get; set; } = string.Empty;
+    /// <summary>
+    /// Optional public-facing alias. When set, the model is exposed as "provider/alias"
+    /// to clients and in /v1/models, but upstream requests still use ModelId.
+    /// Useful for exposing the same physical model with different defaultParams
+    /// (e.g. thinking vs non-thinking mode).
+    /// </summary>
+    public string? Alias { get; set; }
     public Dictionary<string, JsonElement>? DefaultParams { get; set; }
     public List<string>? Fallback { get; set; }
 }
@@ -101,6 +112,11 @@ public class ModelEntry
 {
     public string? BaseUrl { get; set; }
     public string? ApiKey { get; set; }
+    /// <summary>
+    /// The model name sent to the upstream API. Defaults to the public-facing key
+    /// if not set. Used when alias differs from the actual upstream model name.
+    /// </summary>
+    public string? UpstreamModelName { get; set; }
     /// <summary>
     /// Default parameters to inject into requests if not provided by the client.
     /// Supports any JSON value type (number, string, bool, object, array) via JsonElement.

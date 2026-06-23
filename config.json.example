@@ -15,6 +15,16 @@
             "top_p": 0.9,
             "top_k": 40
           }
+        },
+        {
+          "modelid": "gemma4-it-31b",
+          "alias": "gemma4-it-31b-thinking",
+          "defaultParams": {
+            "temperature": 0.0,
+            "top_p": 0.9,
+            "top_k": 40,
+            "enable_thinking": true
+          }
         }
       ]
     }
